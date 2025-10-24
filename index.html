@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Controle de Porta IoT</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg, #0072ff, #00c6ff);
+      color: white;
+      text-align: center;
+      padding: 50px;
+    }
+    h1 {
+      margin-bottom: 20px;
+    }
+    button {
+      padding: 15px 30px;
+      font-size: 16px;
+      margin: 10px;
+      border: none;
+      border-radius: 8px;
+      background-color: #fff;
+      color: #0072ff;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+    button:hover {
+      background-color: #e0e0e0;
+    }
+    #status, #internetStatus {
+      margin-top: 20px;
+      font-size: 18px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <h1>Controle de Porta via Internet (MQTT)</h1>
+  <button onclick="enviarComando('abrir')">Abrir Porta</button>
+  <button onclick="enviarComando('fechar')">Fechar Porta</button>
+
+  <p id="internetStatus">Verificando conexão...</p>
+  <p id="status">Aguardando conexão com o servidor MQTT...</p>
+
+  <!-- MQTT via WebSocket -->
+
+  <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+
+  <script>
+    // Verificação de conexão com a Internet
+    function verificarInternet() {
+      if (navigator.onLine) {
+        document.getElementById("internetStatus").textContent = "🌐 Conectado à Internet!";
+        document.getElementById("internetStatus").style.color = "lime";
+      } else {
+        document.getElementById("internetStatus").textContent = "❌ Sem conexão com a Internet!";
+        document.getElementById("internetStatus").style.color = "red";
+      }
+    }
+    verificarInternet();
+    window.addEventListener('online', verificarInternet);
+    window.addEventListener('offline', verificarInternet);
+
+    // Conexão com o broker MQTT HiveMQ
+    const client = mqtt.connect('wss://broker.hivemq.com:8884/mqtt');
+    const topic = 'glaucia/porta';
+
+    client.on('connect', () => {
+      document.getElementById("status").textContent = "✅ Conectado ao HiveMQ Broker!";
+      document.getElementById("status").style.color = "lime";
+      client.subscribe(topic);
+    });
+
+    client.on('error', (error) => {
+      document.getElementById("status").textContent = "⚠️ Erro na conexão ao HiveMQ!";
+      document.getElementById("status").style.color = "red";
+      console.error("Erro MQTT:", error);
+    });
+
+    client.on('offline', () => {
+      document.getElementById("status").textContent = "⚠️ Desconectado do broker MQTT!";
+      document.getElementById("status").style.color = "orange";
+    });
+
+    // Enviar comandos
+    function enviarComando(cmd) {
+      if (client.connected) {
+        client.publish(topic, cmd);
+        document.getElementById("status").textContent = `📡 Comando "${cmd}" enviado via Internet!`;
+        document.getElementById("status").style.color = "white";
+      } else {
+        document.getElementById("status").textContent = "❌ Broker não conectado!";
+        document.getElementById("status").style.color = "red";
+      }
+    }
+  </script>
+
+</body>
+</html>
